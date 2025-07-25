@@ -14,8 +14,8 @@ export function useLayoutEngine() {
       dagreGraph.setGraph({
         rankdir: direction,
         align: 'UL',
-        nodesep: 100,
-        ranksep: 150,
+        nodesep: 80,
+        ranksep: 120,
         marginx: 50,
         marginy: 50,
       })
@@ -150,9 +150,63 @@ export function useLayoutEngine() {
     return Array.from(domainLayouts.values()).flat()
   }, [applyLayout])
   
+  const applyGridLayout = useCallback((nodes: EntityNode[], _edges: RelationshipEdge[]) => {
+    // Calculate grid dimensions
+    const nodeCount = nodes.length
+    const columns = Math.ceil(Math.sqrt(nodeCount * 1.5)) // Slightly wider than square
+    const nodeWidth = 250
+    const nodeHeight = 150
+    const horizontalSpacing = 120
+    const verticalSpacing = 100
+    
+    // Group nodes by domain for better organization
+    const domainGroups = new Map<string, EntityNode[]>()
+    nodes.forEach((node) => {
+      const domain = node.data.domain || 'general'
+      if (!domainGroups.has(domain)) {
+        domainGroups.set(domain, [])
+      }
+      domainGroups.get(domain)!.push(node)
+    })
+    
+    // Sort domains by node count (larger domains first)
+    const sortedDomains = Array.from(domainGroups.entries())
+      .sort((a, b) => b[1].length - a[1].length)
+    
+    const layoutedNodes: EntityNode[] = []
+    let currentIndex = 0
+    
+    sortedDomains.forEach(([_domain, domainNodes]) => {
+      // Sort nodes within domain by relationship count
+      domainNodes.sort((a, b) => {
+        const aRelCount = a.data.isRelationship ? 10 : 0
+        const bRelCount = b.data.isRelationship ? 10 : 0
+        return bRelCount - aRelCount
+      })
+      
+      domainNodes.forEach((node) => {
+        const row = Math.floor(currentIndex / columns)
+        const col = currentIndex % columns
+        
+        layoutedNodes.push({
+          ...node,
+          position: {
+            x: col * (nodeWidth + horizontalSpacing),
+            y: row * (nodeHeight + verticalSpacing),
+          },
+        })
+        
+        currentIndex++
+      })
+    })
+    
+    return layoutedNodes
+  }, [])
+  
   return {
     applyLayout,
     applyForceLayout,
     applyDomainLayout,
+    applyGridLayout,
   }
 }

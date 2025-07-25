@@ -20,6 +20,7 @@ import RelationshipEdge from '@/components/Edges/RelationshipEdge'
 import EdgeMarkers from '@/components/Edges/EdgeMarkers'
 import { useLayoutEngine } from '@/hooks/useLayoutEngine'
 import CanvasControls from './CanvasControls'
+import type { EntityNode as EntityNodeType } from '@/types/graph'
 
 const nodeTypes: NodeTypes = {
   default: EntityNode,
@@ -31,20 +32,36 @@ const edgeTypes: EdgeTypes = {
 
 export default function SchemaCanvas() {
   const graph = useSchemaStore((state) => state.graph)
-  const { showMinimap, showGrid } = useViewStore()
+  const { showMinimap, showGrid, mode } = useViewStore()
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
-  const { applyLayout } = useLayoutEngine()
+  const { applyLayout, applyGridLayout, applyDomainLayout } = useLayoutEngine()
 
   // Initialize nodes and edges from graph
   useEffect(() => {
     if (graph) {
-      // Apply initial layout
-      const layoutedNodes = applyLayout(graph.nodes, graph.edges)
+      // Apply layout based on view mode
+      let layoutedNodes: EntityNodeType[]
+      
+      switch (mode) {
+        case 'domain':
+          layoutedNodes = applyDomainLayout(graph.nodes, graph.edges)
+          break
+        case 'detailed':
+        case 'compact':
+          layoutedNodes = applyLayout(graph.nodes, graph.edges, 'TB')
+          break
+        case 'overview':
+        default:
+          // Use grid layout for better space utilization
+          layoutedNodes = applyGridLayout(graph.nodes, graph.edges)
+          break
+      }
+      
       setNodes(layoutedNodes)
       setEdges(graph.edges)
     }
-  }, [graph, setNodes, setEdges, applyLayout])
+  }, [graph, mode, setNodes, setEdges, applyLayout, applyGridLayout, applyDomainLayout])
 
   const onConnect = useCallback(
     (params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)),

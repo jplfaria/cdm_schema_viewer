@@ -10,8 +10,13 @@ import { saveAs } from 'file-saver'
 
 type ExportStatus = 'idle' | 'exporting' | 'success' | 'error'
 
-const imageWidth = 1920
-const imageHeight = 1080
+// Dynamic image dimensions based on content
+const calculateImageDimensions = (nodesBounds: { x: number; y: number; width: number; height: number }) => {
+  const padding = 100
+  const width = Math.max(1920, nodesBounds.width + padding * 2)
+  const height = Math.max(1080, nodesBounds.height + padding * 2)
+  return { width, height }
+}
 
 export default function CanvasControls() {
   const { fitView, getNodes, getEdges } = useReactFlow()
@@ -59,14 +64,17 @@ export default function CanvasControls() {
     // Get the bounds of all nodes
     const nodesBounds = getNodesBounds(nodes)
     
+    // Calculate dynamic image dimensions based on content
+    const { width: imageWidth, height: imageHeight } = calculateImageDimensions(nodesBounds)
+    
     // Calculate the viewport for the bounds with padding
     const viewport = getViewportForBounds(
       nodesBounds,
       imageWidth,
       imageHeight,
-      0.5, // minZoom
+      0.1, // minZoom - reduced to capture more content
       2,   // maxZoom
-      0.1  // padding
+      0.2  // padding - increased for better spacing
     )
 
     try {
@@ -166,13 +174,14 @@ export default function CanvasControls() {
 
       // Get bounds and viewport
       const nodesBounds = getNodesBounds(nodes)
+      const { width: imageWidth, height: imageHeight } = calculateImageDimensions(nodesBounds)
       const viewport = getViewportForBounds(
         nodesBounds,
         imageWidth,
         imageHeight,
-        0.5,
+        0.1,
         2,
-        0.1
+        0.2
       )
 
       // Get the viewport element

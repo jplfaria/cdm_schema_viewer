@@ -2,13 +2,29 @@ import { CDMSchema, CDMClass } from '@/types/schema'
 import { SchemaGraph, EntityNode, RelationshipEdge, AttributeInfo } from '@/types/graph'
 import { classifyEntityType } from '@/store/schemaStore'
 
-export function parseSchemaToGraph(schema: CDMSchema): SchemaGraph {
+export function parseSchemaToGraph(schema: CDMSchema, options?: { hideJunctionTables?: boolean }): SchemaGraph {
   const nodes: EntityNode[] = []
   const edges: RelationshipEdge[] = []
   const nodeMap = new Map<string, EntityNode>()
+  const junctionTables = new Map<string, { source: string; target: string }>()
   
-  // First pass: Create nodes for all classes
+  // Define abstract base classes to exclude from visualization
+  const abstractBaseClasses = new Set([
+    'Table',
+    'Any',
+    'AttributeValue',
+    'NamedEntity',
+    'IdentifiedEntity',
+    'AttributeValueEntity'
+  ])
+  
+  // First pass: Create nodes for all classes (excluding abstract base classes)
   Object.entries(schema.classes).forEach(([className, cdmClass]) => {
+    // Skip abstract base classes
+    if (abstractBaseClasses.has(className)) {
+      return
+    }
+    
     const entityType = classifyEntityType(cdmClass, className)
     const attributes = extractAttributes(cdmClass, schema)
     
@@ -34,8 +50,13 @@ export function parseSchemaToGraph(schema: CDMSchema): SchemaGraph {
   
   // Second pass: Create edges for relationships
   Object.entries(schema.classes).forEach(([className, cdmClass]) => {
-    // Handle inheritance relationships (skip Table inheritance for SQL ER diagram style)
-    if (cdmClass.is_a && nodeMap.has(cdmClass.is_a) && cdmClass.is_a !== 'Table') {
+    // Skip if this class was excluded
+    if (abstractBaseClasses.has(className)) {
+      return
+    }
+    
+    // Handle inheritance relationships (skip inheritance from abstract base classes)
+    if (cdmClass.is_a && nodeMap.has(cdmClass.is_a) && !abstractBaseClasses.has(cdmClass.is_a)) {
       edges.push({
         id: `${className}-inherits-${cdmClass.is_a}`,
         source: className,
@@ -54,36 +75,48 @@ export function parseSchemaToGraph(schema: CDMSchema): SchemaGraph {
       const relationshipSlots = cdmClass.slots.filter((slot) => slot.endsWith('_id'))
       
       if (relationshipSlots.length >= 2) {
-        // Extract entity names from slot names
-        // const sourceEntity = relationshipSlots[0].replace('_id', '')
-        // const targetEntity = relationshipSlots[1].replace('_id', '')
-        
         const sourceClass = findClassByIdSlot(schema, relationshipSlots[0])
         const targetClass = findClassByIdSlot(schema, relationshipSlots[1])
         
         if (sourceClass && targetClass) {
-          // Determine cardinality
-          const sourceMultivalued = cdmClass.slot_usage?.[relationshipSlots[0]]?.multivalued
-          const targetMultivalued = cdmClass.slot_usage?.[relationshipSlots[1]]?.multivalued
+          // Check if this junction table has only foreign key attributes
+          const nonIdSlots = cdmClass.slots.filter(slot => !slot.endsWith('_id'))
+          const isJunctionTable = nonIdSlots.length === 0 || 
+            (cdmClass.attributes && Object.keys(cdmClass.attributes).length === 0)
           
-          let cardinality: 'one-to-one' | 'one-to-many' | 'many-to-many' = 'one-to-one'
-          if (sourceMultivalued && targetMultivalued) {
-            cardinality = 'many-to-many'
-          } else if (sourceMultivalued || targetMultivalued) {
-            cardinality = 'one-to-many'
+          if (options?.hideJunctionTables && isJunctionTable) {
+            // Store junction table info for creating direct edges
+            junctionTables.set(className, { source: sourceClass, target: targetClass })
+            // Remove the junction table node
+            const nodeIndex = nodes.findIndex(n => n.id === className)
+            if (nodeIndex >= 0) {
+              nodes.splice(nodeIndex, 1)
+              nodeMap.delete(className)
+            }
+          } else {
+            // Determine cardinality
+            const sourceMultivalued = cdmClass.slot_usage?.[relationshipSlots[0]]?.multivalued
+            const targetMultivalued = cdmClass.slot_usage?.[relationshipSlots[1]]?.multivalued
+            
+            let cardinality: 'one-to-one' | 'one-to-many' | 'many-to-many' = 'one-to-one'
+            if (sourceMultivalued && targetMultivalued) {
+              cardinality = 'many-to-many'
+            } else if (sourceMultivalued || targetMultivalued) {
+              cardinality = 'one-to-many'
+            }
+            
+            edges.push({
+              id: `${sourceClass}-${className}-${targetClass}`,
+              source: sourceClass,
+              target: targetClass,
+              type: 'straight',
+              animated: false,
+              data: {
+                label: className,
+                cardinality,
+              },
+            })
           }
-          
-          edges.push({
-            id: `${sourceClass}-${className}-${targetClass}`,
-            source: sourceClass,
-            target: targetClass,
-            type: 'straight',
-            animated: false,
-            data: {
-              label: className,
-              cardinality,
-            },
-          })
         }
       }
     }
@@ -114,6 +147,25 @@ export function parseSchemaToGraph(schema: CDMSchema): SchemaGraph {
       })
     }
   })
+  
+  // Add direct edges for hidden junction tables
+  if (options?.hideJunctionTables) {
+    junctionTables.forEach((junction, junctionName) => {
+      if (nodeMap.has(junction.source) && nodeMap.has(junction.target)) {
+        edges.push({
+          id: `${junction.source}-${junctionName}-${junction.target}`,
+          source: junction.source,
+          target: junction.target,
+          type: 'straight',
+          animated: false,
+          data: {
+            label: junctionName.replace(/([A-Z])/g, ' $1').trim(),
+            cardinality: 'many-to-many', // Junction tables typically represent many-to-many
+          },
+        })
+      }
+    })
+  }
   
   // Calculate metadata
   const domains = Array.from(new Set(nodes.map((n) => n.data.domain).filter(Boolean))) as string[]
