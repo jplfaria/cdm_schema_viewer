@@ -34,8 +34,8 @@ export function parseSchemaToGraph(schema: CDMSchema): SchemaGraph {
   
   // Second pass: Create edges for relationships
   Object.entries(schema.classes).forEach(([className, cdmClass]) => {
-    // Handle inheritance relationships
-    if (cdmClass.is_a && nodeMap.has(cdmClass.is_a)) {
+    // Handle inheritance relationships (skip Table inheritance for SQL ER diagram style)
+    if (cdmClass.is_a && nodeMap.has(cdmClass.is_a) && cdmClass.is_a !== 'Table') {
       edges.push({
         id: `${className}-inherits-${cdmClass.is_a}`,
         source: className,

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FiGrid, FiMap, FiMaximize, FiLayers, FiDownload, FiCheck, FiAlertCircle } from 'react-icons/fi'
-import { useReactFlow, getNodesBounds, getViewportForBounds } from 'reactflow'
+import { useReactFlow, getNodesBounds } from 'reactflow'
 import { useViewStore } from '@/store/viewStore'
 import { useSchemaStore } from '@/store/schemaStore'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
@@ -9,9 +9,6 @@ import { toPng, toSvg } from 'html-to-image'
 import { saveAs } from 'file-saver'
 
 type ExportStatus = 'idle' | 'exporting' | 'success' | 'error'
-
-const imageWidth = 1920
-const imageHeight = 1080
 
 export default function CanvasControls() {
   const { fitView, getNodes, getEdges } = useReactFlow()
@@ -43,7 +40,7 @@ export default function CanvasControls() {
     }, 3000)
   }
 
-  // Export handlers - Fixed version
+  // Export handlers
   const exportAsPNG = async () => {
     const nodes = getNodes()
     if (nodes.length === 0) {
@@ -56,77 +53,59 @@ export default function CanvasControls() {
     setExportStatus('exporting')
     setExportType('PNG')
 
-    // Get the bounds of all nodes
     const nodesBounds = getNodesBounds(nodes)
-    
-    // Calculate the viewport for the bounds with padding
-    const viewport = getViewportForBounds(
-      nodesBounds,
-      imageWidth,
-      imageHeight,
-      0.5, // minZoom
-      2,   // maxZoom
-      0.1  // padding
-    )
+    const padding = 50
+    const imageWidth = nodesBounds.width + padding * 2
+    const imageHeight = nodesBounds.height + padding * 2
+
+    // Get the React Flow viewport element
+    const reactFlowViewport = document.querySelector('.react-flow__viewport') as HTMLElement
+    if (!reactFlowViewport) {
+      setExportStatus('error')
+      resetExportStatus()
+      return
+    }
+
+    // Get current theme
+    const isDarkMode = document.documentElement.classList.contains('dark')
+    const backgroundColor = isDarkMode ? '#020817' : '#ffffff'
 
     try {
-      // Get the actual React Flow wrapper element (not the viewport)
-      const reactFlowWrapper = document.querySelector('.react-flow') as HTMLElement
-      if (!reactFlowWrapper) {
-        throw new Error('React Flow element not found. Please ensure the diagram is loaded.')
-      }
+      // Clone the viewport to avoid modifying the original
+      const clonedViewport = reactFlowViewport.cloneNode(true) as HTMLElement
+      
+      // Create a temporary container
+      const container = document.createElement('div')
+      container.style.position = 'absolute'
+      container.style.top = '-9999px'
+      container.style.width = `${imageWidth}px`
+      container.style.height = `${imageHeight}px`
+      container.style.backgroundColor = backgroundColor
+      
+      // Apply transform to fit all nodes
+      clonedViewport.style.transform = `translate(${-nodesBounds.x + padding}px, ${-nodesBounds.y + padding}px)`
+      
+      container.appendChild(clonedViewport)
+      document.body.appendChild(container)
 
-      // Apply the calculated viewport transform temporarily
-      const reactFlowViewport = reactFlowWrapper.querySelector('.react-flow__viewport') as HTMLElement
-      if (!reactFlowViewport) {
-        throw new Error('React Flow viewport not found. The diagram structure may be invalid.')
-      }
-
-      // Ensure nodes are visible
-      const visibleNodes = nodes.filter(node => node.width && node.height)
-      if (visibleNodes.length === 0) {
-        throw new Error('No visible nodes found. Nodes may still be rendering.')
-      }
-
-      // Store original transform
-      const originalTransform = reactFlowViewport.style.transform
-      const originalTransition = reactFlowViewport.style.transition
-
-      // Apply new transform without transition
-      reactFlowViewport.style.transition = 'none'
-      reactFlowViewport.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`
-
-      // Wait for render - use requestAnimationFrame for better timing
-      await new Promise(resolve => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve)
-        })
-      })
-
-      // Get current theme
-      const isDarkMode = document.documentElement.classList.contains('dark')
-
-      // Export the image
-      const dataUrl = await toPng(reactFlowWrapper, {
-        backgroundColor: isDarkMode ? '#020817' : '#ffffff',
+      const dataUrl = await toPng(container, {
+        backgroundColor,
         width: imageWidth,
         height: imageHeight,
         filter: (node) => {
-          return !node.classList?.contains('react-flow__minimap') && 
-                 !node.classList?.contains('react-flow__controls') &&
-                 !node.classList?.contains('react-flow__background') &&
-                 !node.classList?.contains('react-flow__attribution')
+          // Exclude minimap and controls from export
+          const className = node.className
+          if (typeof className === 'string') {
+            return !className.includes('react-flow__minimap') && 
+                   !className.includes('react-flow__controls')
+          }
+          return true
         },
-        style: {
-          width: imageWidth + 'px',
-          height: imageHeight + 'px',
-        }
       })
-
-      // Restore original transform
-      reactFlowViewport.style.transform = originalTransform
-      reactFlowViewport.style.transition = originalTransition
-
+      
+      // Clean up
+      document.body.removeChild(container)
+      
       // Save the file
       saveAs(dataUrl, `cdm-schema-diagram-${new Date().toISOString().slice(0, 10)}.png`)
       
@@ -151,89 +130,62 @@ export default function CanvasControls() {
     setExportStatus('exporting')
     setExportType('SVG')
 
+    const nodesBounds = getNodesBounds(nodes)
+    const padding = 50
+    const imageWidth = nodesBounds.width + padding * 2
+    const imageHeight = nodesBounds.height + padding * 2
+
+    // Get the React Flow viewport element
+    const reactFlowViewport = document.querySelector('.react-flow__viewport') as HTMLElement
+    if (!reactFlowViewport) {
+      setExportStatus('error')
+      resetExportStatus()
+      return
+    }
+
+    // Get current theme
+    const isDarkMode = document.documentElement.classList.contains('dark')
+    const backgroundColor = isDarkMode ? '#020817' : '#ffffff'
+
     try {
-      // Get the React Flow wrapper
-      const reactFlowWrapper = document.querySelector('.react-flow') as HTMLElement
-      if (!reactFlowWrapper) {
-        throw new Error('React Flow element not found. Please ensure the diagram is loaded.')
-      }
-
-      // Ensure nodes are visible
-      const visibleNodes = nodes.filter(node => node.width && node.height)
-      if (visibleNodes.length === 0) {
-        throw new Error('No visible nodes found. Nodes may still be rendering.')
-      }
-
-      // Get bounds and viewport
-      const nodesBounds = getNodesBounds(nodes)
-      const viewport = getViewportForBounds(
-        nodesBounds,
-        imageWidth,
-        imageHeight,
-        0.5,
-        2,
-        0.1
-      )
-
-      // Get the viewport element
-      const reactFlowViewport = reactFlowWrapper.querySelector('.react-flow__viewport') as HTMLElement
-      if (!reactFlowViewport) {
-        throw new Error('React Flow viewport not found')
-      }
-
-      // Store and apply transform
-      const originalTransform = reactFlowViewport.style.transform
-      const originalTransition = reactFlowViewport.style.transition
+      // Clone the viewport to avoid modifying the original
+      const clonedViewport = reactFlowViewport.cloneNode(true) as HTMLElement
       
-      reactFlowViewport.style.transition = 'none'
-      reactFlowViewport.style.transform = `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`
+      // Create a temporary container
+      const container = document.createElement('div')
+      container.style.position = 'absolute'
+      container.style.top = '-9999px'
+      container.style.width = `${imageWidth}px`
+      container.style.height = `${imageHeight}px`
+      container.style.backgroundColor = backgroundColor
+      
+      // Apply transform to fit all nodes
+      clonedViewport.style.transform = `translate(${-nodesBounds.x + padding}px, ${-nodesBounds.y + padding}px)`
+      
+      container.appendChild(clonedViewport)
+      document.body.appendChild(container)
 
-      // Wait for render - use requestAnimationFrame for better timing
-      await new Promise(resolve => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve)
-        })
-      })
-
-      // Get current theme
-      const isDarkMode = document.documentElement.classList.contains('dark')
-
-      // Export as SVG
-      const dataUrl = await toSvg(reactFlowWrapper, {
-        backgroundColor: isDarkMode ? '#020817' : '#ffffff',
+      const dataUrl = await toSvg(container, {
+        backgroundColor,
         width: imageWidth,
         height: imageHeight,
         filter: (node) => {
-          return !node.classList?.contains('react-flow__minimap') && 
-                 !node.classList?.contains('react-flow__controls') &&
-                 !node.classList?.contains('react-flow__background') &&
-                 !node.classList?.contains('react-flow__attribution')
+          // Exclude minimap and controls from export
+          const className = node.className
+          if (typeof className === 'string') {
+            return !className.includes('react-flow__minimap') && 
+                   !className.includes('react-flow__controls')
+          }
+          return true
         },
-        style: {
-          width: imageWidth + 'px',
-          height: imageHeight + 'px',
-        }
       })
-
-      // Restore transform
-      reactFlowViewport.style.transform = originalTransform
-      reactFlowViewport.style.transition = originalTransition
-
-      // Convert data URL to blob
-      let blob: Blob
-      if (dataUrl.startsWith('data:image/svg+xml;base64,')) {
-        // Base64 encoded
-        const svgString = atob(dataUrl.split(',')[1])
-        blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
-      } else if (dataUrl.startsWith('data:image/svg+xml,')) {
-        // URL encoded
-        const svgString = decodeURIComponent(dataUrl.split(',')[1])
-        blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
-      } else {
-        // Fallback: try to fetch the data URL
-        const response = await fetch(dataUrl)
-        blob = await response.blob()
-      }
+      
+      // Clean up
+      document.body.removeChild(container)
+      
+      // Convert data URL to blob for better SVG handling
+      const svgString = decodeURIComponent(dataUrl.split(',')[1])
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' })
       
       // Save the file
       saveAs(blob, `cdm-schema-diagram-${new Date().toISOString().slice(0, 10)}.svg`)
@@ -277,6 +229,7 @@ export default function CanvasControls() {
           position: node.position,
           data: {
             ...node.data,
+            // Include entity details if available
             entity: node.data.entity || null,
             isExpanded: node.data.isExpanded || false,
           },
@@ -294,6 +247,7 @@ export default function CanvasControls() {
           label: edge.label || null,
         })),
       },
+      // Include graph metadata if available
       ...(graph?.metadata && { graphMetadata: graph.metadata }),
     }
     
