@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDM Schema Export Test</title>
+</head>
+<body>
+    <h1>CDM Schema Export Test</h1>
+    <p>Testing export functionality...</p>
+    
+    <iframe 
+        id="schema-viewer" 
+        src="https://jplfaria.github.io/cdm_schema_viewer/" 
+        width="100%" 
+        height="800px"
+        style="border: 1px solid #ccc;"
+    ></iframe>
+    
+    <div id="status"></div>
+    
+    <script>
+        // Wait for iframe to load
+        window.addEventListener('load', async () => {
+            const status = document.getElementById('status');
+            status.innerHTML = '<p>Waiting for schema to load...</p>';
+            
+            // Give the schema viewer time to load
+            setTimeout(() => {
+                status.innerHTML = '<p>Schema viewer loaded. Manual export required from within the app.</p>';
+                status.innerHTML += '<p>Please use the export buttons in the top-left corner of the diagram.</p>';
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

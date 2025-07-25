@@ -1,0 +1,91 @@
+{
+  "version": "1.0",
+  "exportDate": "2024-01-25T10:00:00Z",
+  "nodes": [
+    {
+      "id": "ContigCollection",
+      "label": "ContigCollection",
+      "type": "core",
+      "attributes": [
+        {"name": "contig_collection_id", "type": "UUID", "required": true, "isIdentifier": true},
+        {"name": "hash", "type": "string", "required": true},
+        {"name": "contig_collection_type", "type": "ContigCollectionType", "required": true},
+        {"name": "gc_avg", "type": "float", "required": false},
+        {"name": "n_contigs", "type": "integer", "required": false}
+      ],
+      "position": {"x": 100, "y": 100}
+    },
+    {
+      "id": "Contig",
+      "label": "Contig", 
+      "type": "core",
+      "attributes": [
+        {"name": "contig_id", "type": "UUID", "required": true, "isIdentifier": true},
+        {"name": "hash", "type": "string", "required": true},
+        {"name": "length", "type": "integer", "required": true},
+        {"name": "gc_content", "type": "float", "required": false}
+      ],
+      "position": {"x": 400, "y": 100}
+    },
+    {
+      "id": "Feature",
+      "label": "Feature",
+      "type": "core",
+      "attributes": [
+        {"name": "feature_id", "type": "UUID", "required": true, "isIdentifier": true},
+        {"name": "hash", "type": "string", "required": true},
+        {"name": "type", "type": "string", "required": true},
+        {"name": "start", "type": "integer", "required": true},
+        {"name": "end", "type": "integer", "required": true},
+        {"name": "contig_id", "type": "UUID", "required": false}
+      ],
+      "position": {"x": 700, "y": 100}
+    },
+    {
+      "id": "Protein",
+      "label": "Protein",
+      "type": "core",
+      "attributes": [
+        {"name": "protein_id", "type": "UUID", "required": true, "isIdentifier": true},
+        {"name": "hash", "type": "string", "required": true},
+        {"name": "sequence", "type": "string", "required": true},
+        {"name": "length", "type": "integer", "required": true},
+        {"name": "feature_id", "type": "UUID", "required": false}
+      ],
+      "position": {"x": 1000, "y": 100}
+    },
+    {
+      "id": "Contig_X_ContigCollection",
+      "label": "Contig_X_ContigCollection",
+      "type": "relationship",
+      "attributes": [
+        {"name": "contig_collection_id", "type": "UUID", "required": true},
+        {"name": "contig_id", "type": "UUID", "required": true}
+      ],
+      "position": {"x": 250, "y": 300}
+    }
+  ],
+  "edges": [
+    {
+      "id": "ContigCollection-Contig",
+      "source": "ContigCollection",
+      "target": "Contig",
+      "label": "contains",
+      "cardinality": "one-to-many"
+    },
+    {
+      "id": "Contig-Feature", 
+      "source": "Contig",
+      "target": "Feature",
+      "label": "has",
+      "cardinality": "one-to-many"
+    },
+    {
+      "id": "Feature-Protein",
+      "source": "Feature", 
+      "target": "Protein",
+      "label": "encodes",
+      "cardinality": "one-to-many"
+    }
+  ]
+}
