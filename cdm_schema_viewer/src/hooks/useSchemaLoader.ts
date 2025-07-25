@@ -13,11 +13,12 @@ export function useSchemaLoader() {
 
     try {
       // Fetch all required schema files
+      const baseUrl = import.meta.env.BASE_URL
       const schemaFiles = [
-        '/cdm-schema/src/linkml/cdm_schema.yaml',
-        '/cdm-schema/src/linkml/cdm_components.yaml',
-        '/cdm-schema/src/linkml/cdm_base.yaml',
-        '/cdm-schema/src/linkml/cdm_enums.yaml',
+        `${baseUrl}cdm-schema/src/linkml/cdm_schema.yaml`,
+        `${baseUrl}cdm-schema/src/linkml/cdm_components.yaml`,
+        `${baseUrl}cdm-schema/src/linkml/cdm_base.yaml`,
+        `${baseUrl}cdm-schema/src/linkml/cdm_enums.yaml`,
       ]
 
       const responses = await Promise.all(
