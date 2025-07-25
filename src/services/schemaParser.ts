@@ -40,7 +40,7 @@ export function parseSchemaToGraph(schema: CDMSchema): SchemaGraph {
         id: `${className}-inherits-${cdmClass.is_a}`,
         source: className,
         target: cdmClass.is_a,
-        type: 'smoothstep',
+        type: 'straight',
         animated: false,
         data: {
           label: 'is_a',
@@ -77,7 +77,7 @@ export function parseSchemaToGraph(schema: CDMSchema): SchemaGraph {
             id: `${sourceClass}-${className}-${targetClass}`,
             source: sourceClass,
             target: targetClass,
-            type: 'smoothstep',
+            type: 'straight',
             animated: false,
             data: {
               label: className,
@@ -86,6 +86,32 @@ export function parseSchemaToGraph(schema: CDMSchema): SchemaGraph {
           })
         }
       }
+    }
+    
+    // Handle foreign key relationships (slots ending with _id)
+    if (cdmClass.slots && !cdmClass.represents_relationship) {
+      cdmClass.slots.forEach((slotName) => {
+        if (slotName.endsWith('_id') && !slotName.includes('self')) {
+          const targetClass = findClassByIdSlot(schema, slotName)
+          if (targetClass && targetClass !== className) {
+            const slotUsage = cdmClass.slot_usage?.[slotName]
+            const slot = schema.slots[slotName]
+            const isMultivalued = slotUsage?.multivalued || slot?.multivalued
+            
+            edges.push({
+              id: `${className}-${slotName}-${targetClass}`,
+              source: className,
+              target: targetClass,
+              type: 'straight',
+              animated: false,
+              data: {
+                label: slotName.replace('_id', ''),
+                cardinality: isMultivalued ? 'one-to-many' : 'one-to-one',
+              },
+            })
+          }
+        }
+      })
     }
   })
   
