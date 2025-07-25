@@ -1,0 +1,46 @@
+---
+site_name: "cdm-schema"
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.tabs.link
+
+plugins:
+  - search
+  - mermaid2:
+      version: 10.9.0
+
+markdown_extensions:
+  - tables
+
+extra_javascript:
+  - https://unpkg.com/tablesort@5.3.0/dist/tablesort.min.js
+  - javascripts/tablesort.js
+
+nav:
+  # - Home: home.md
+  - Index: index.md
+  - About: about.md
+site_url: https://kbase.github.io/cdm-schema
+repo_url: https://github.com/kbase/cdm-schema
+
+# Uncomment this block to enable use of Google Analytics.
+# Replace the property value with your own ID.
+# extra:
+#   analytics:
+#     provider: google
+#     property: G-XXXXXXXXXX
