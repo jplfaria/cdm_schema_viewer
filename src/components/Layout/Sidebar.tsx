@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FiSearch, FiFilter, FiX, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { useReactFlow } from 'reactflow'
 import { useViewStore } from '@/store/viewStore'
 import { useSchemaStore } from '@/store/schemaStore'
 import clsx from 'clsx'
@@ -7,6 +8,7 @@ import clsx from 'clsx'
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const graph = useSchemaStore((state) => state.graph)
+  const { fitView } = useReactFlow()
   const {
     searchQuery,
     setSearchQuery,
@@ -15,6 +17,8 @@ export default function Sidebar() {
     showRelationships,
     toggleRelationships,
     clearFilters,
+    selectNode,
+    setFocusedNode,
   } = useViewStore()
 
   if (!graph) return null
@@ -144,7 +148,16 @@ export default function Sidebar() {
                   key={node.id}
                   className="cursor-pointer rounded-md border p-2 text-sm hover:bg-muted"
                   onClick={() => {
-                    // TODO: Focus on node in canvas
+                    // Select and focus on the node
+                    selectNode(node.id)
+                    setFocusedNode(node.id)
+
+                    // Focus on the node in the canvas
+                    fitView({
+                      nodes: [{ id: node.id }],
+                      duration: 800,
+                      padding: 0.3,
+                    })
                   }}
                 >
                   <div className="flex items-center gap-2">

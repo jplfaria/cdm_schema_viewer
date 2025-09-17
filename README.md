@@ -4,17 +4,43 @@ An interactive visualization tool for the KBase Common Data Model (CDM) schema, 
 
 ## Features
 
+### 🖼️ **Interactive Visualization**
 - **Interactive Canvas**: Pan, zoom, and navigate through the schema with ease
-- **Entity Visualization**: Color-coded entities with expandable details
-- **Relationship Mapping**: Clear visualization of connections between entities
-- **Search & Filter**: Find entities quickly with real-time search
-- **Multiple View Modes**: Overview, detailed, domain-based, and compact views
-- **Export Options**: Export diagrams as PNG, SVG, or JSON
-- **Dark Mode**: Toggle between light and dark themes
-- **Dynamic Schema Loading**: Automatically fetches the latest schema from KBase GitHub repository
-- **Schema Version Tracking**: Shows schema version, last updated date, and commit information
+- **Entity Visualization**: Color-coded entities displayed as SQL-style table diagrams
+- **Relationship Mapping**: Clear visualization of connections between entities with cardinality
+- **Node Selection**: Click to select entities, Ctrl/Cmd+click for multi-selection
+- **Entity Focus**: Click entities in sidebar to zoom and focus on them in the canvas
+
+### 🔍 **Advanced Filtering & Search**
+- **Real-time Search**: Find entities by name, description, or attribute names
+- **Entity Type Filtering**: Toggle visibility of Core, Relationship, Metadata, Experimental, and Enum entities
+- **Relationship Visibility**: Show/hide connection lines between entities
+- **Smart Filtering**: Only shows relationships between visible entities
+
+### 📊 **Multiple View Modes**
+- **Overview**: Grid layout optimizing space utilization
+- **Detailed**: Hierarchical layout showing full attribute lists
+- **Domain**: Entities grouped by scientific domain (genomics, experimental, etc.)
+- **Compact**: Minimal view for large schemas
+
+### 🔄 **Dynamic Schema Management**
+- **Live Schema Loading**: Automatically fetches latest schema from KBase GitHub repository
+- **Schema Version Tracking**: Shows schema source, version, last updated date, and commit hash
+- **Manual Refresh**: Force refresh to get the latest schema updates
 - **Fallback Support**: Gracefully falls back to local schema files if GitHub is unavailable
+- **Error Handling**: Comprehensive error boundaries and user-friendly error messages
+
+### 📤 **Export & Sharing**
+- **PNG Export**: High-quality raster images with dynamic sizing
+- **SVG Export**: Scalable vector graphics for presentations
+- **JSON Export**: Complete schema data with metadata for analysis
+- **Theme-aware Export**: Exports respect current light/dark theme
+
+### 🎨 **User Experience**
+- **Dark Mode**: Toggle between light and dark themes
 - **Responsive Design**: Works on desktop and tablet devices
+- **Collapsible Sidebar**: Expand/collapse for more canvas space
+- **Grid & Minimap**: Optional visual aids for navigation
 
 ## Technology Stack
 
@@ -78,23 +104,53 @@ Visit the live demo at: https://jplfaria.github.io/cdm_schema_viewer/
 
 ### Entity Interaction
 
-- **Select**: Click on an entity
-- **Expand/Collapse**: Double-click on an entity
-- **View Details**: Hover over an entity for tooltips
+- **Select Single Entity**: Click on any entity to select it
+- **Multi-Select**: Hold Ctrl/Cmd and click to select multiple entities
+- **Focus on Entity**: Click any entity in the sidebar to zoom and focus on it
+- **Clear Selection**: Click on empty canvas space to deselect all
+- **Expand/Collapse**: Double-click on an entity (feature under development)
 
-### Filtering
+### Filtering & Search
 
-- Use the sidebar to:
-  - Search for specific entities
-  - Filter by entity type
-  - Toggle relationship visibility
+#### Sidebar Controls
+- **Search Bar**: Type to find entities by name, description, or attributes
+- **Entity Type Checkboxes**:
+  - ✅ Core Entities (blue) - Fundamental data types
+  - ✅ Relationships (green) - Join tables and connections
+  - ✅ Metadata (purple) - Supporting information
+  - ✅ Experimental (orange) - Research-related entities
+  - ✅ Enumerations (gray) - Controlled vocabularies
+- **Show Connections**: Toggle relationship lines visibility
+- **Clear All**: Reset all filters to default state
+
+#### Interactive Features
+- **Entity List**: Browse all entities with descriptions and attribute counts
+- **Live Filtering**: Canvas updates immediately as you change filters
+- **Smart Relationships**: Only shows connections between visible entities
 
 ### View Modes
 
-- **Overview**: Simplified view focusing on relationships
-- **Detailed**: Full attribute lists and descriptions
-- **Domain**: Entities grouped by scientific domain
-- **Compact**: Minimal view for large schemas
+- **Overview**: Grid layout optimizing space utilization for best overview
+- **Detailed**: Hierarchical layout with full attribute lists and descriptions
+- **Domain**: Entities grouped by scientific domain (genomics, experimental, metadata, etc.)
+- **Compact**: Minimal view for large schemas (same as detailed currently)
+
+### Canvas Controls
+
+- **Fit to View**: 🔍 Automatically fit all visible entities in view
+- **Toggle Grid**: ⊞ Show/hide background grid for alignment
+- **Toggle Minimap**: 🗺️ Show/hide navigation minimap
+- **Refresh Schema**: 🔄 Manually reload schema from GitHub
+- **View Mode Selector**: 📋 Switch between Overview, Detailed, Domain, and Compact layouts
+- **Export Options**: 📥 Export as PNG, SVG, or JSON with metadata
+
+### Schema Information
+
+The status bar shows:
+- **Entity Count**: Number of visible entities
+- **Relationship Count**: Number of visible connections
+- **Schema Source**: Live indicator showing if loaded from GitHub (🟢 Live) or local files (🟡 Local)
+- **Version Info**: Hover over indicator to see commit hash, last updated date, and source details
 
 ## Schema Structure
 
