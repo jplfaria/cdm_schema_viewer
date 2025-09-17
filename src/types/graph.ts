@@ -48,6 +48,8 @@ export interface GraphMetadata {
   relationshipCount: number
   domains: string[]
   lastUpdated: Date
+  source?: 'remote' | 'fallback'
+  commit?: string
 }
 
 // Layout configuration

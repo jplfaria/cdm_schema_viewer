@@ -8,6 +8,34 @@ export function parseSchemaToGraph(schema: CDMSchema, options?: { hideJunctionTa
   const nodeMap = new Map<string, EntityNode>()
   const junctionTables = new Map<string, { source: string; target: string }>()
   
+  // Track handle usage for better edge distribution
+  const handleUsage = new Map<string, { incoming: number; outgoing: number }>()
+  
+  // Initialize handle tracking
+  const initHandleTracking = (nodeId: string) => {
+    if (!handleUsage.has(nodeId)) {
+      handleUsage.set(nodeId, { incoming: 0, outgoing: 0 })
+    }
+  }
+  
+  // Get next available handle for a node
+  const getNextHandle = (nodeId: string, isSource: boolean) => {
+    initHandleTracking(nodeId)
+    const usage = handleUsage.get(nodeId)!
+    
+    if (isSource) {
+      const handle = usage.outgoing % 3 === 0 ? 'bottom' : 
+                    usage.outgoing % 3 === 1 ? 'right-out' : 'left-out'
+      usage.outgoing++
+      return handle
+    } else {
+      const handle = usage.incoming % 3 === 0 ? 'top' : 
+                    usage.incoming % 3 === 1 ? 'left' : 'right'
+      usage.incoming++
+      return handle
+    }
+  }
+  
   // Define abstract base classes to exclude from visualization
   const abstractBaseClasses = new Set([
     'Table',
@@ -61,6 +89,8 @@ export function parseSchemaToGraph(schema: CDMSchema, options?: { hideJunctionTa
         id: `${className}-inherits-${cdmClass.is_a}`,
         source: className,
         target: cdmClass.is_a,
+        sourceHandle: getNextHandle(className, true),
+        targetHandle: getNextHandle(cdmClass.is_a, false),
         type: 'straight',
         animated: false,
         data: {
@@ -109,6 +139,8 @@ export function parseSchemaToGraph(schema: CDMSchema, options?: { hideJunctionTa
               id: `${sourceClass}-${className}-${targetClass}`,
               source: sourceClass,
               target: targetClass,
+              sourceHandle: getNextHandle(sourceClass, true),
+              targetHandle: getNextHandle(targetClass, false),
               type: 'straight',
               animated: false,
               data: {
@@ -135,6 +167,8 @@ export function parseSchemaToGraph(schema: CDMSchema, options?: { hideJunctionTa
               id: `${className}-${slotName}-${targetClass}`,
               source: className,
               target: targetClass,
+              sourceHandle: getNextHandle(className, true),
+              targetHandle: getNextHandle(targetClass, false),
               type: 'straight',
               animated: false,
               data: {
@@ -156,6 +190,8 @@ export function parseSchemaToGraph(schema: CDMSchema, options?: { hideJunctionTa
           id: `${junction.source}-${junctionName}-${junction.target}`,
           source: junction.source,
           target: junction.target,
+          sourceHandle: getNextHandle(junction.source, true),
+          targetHandle: getNextHandle(junction.target, false),
           type: 'straight',
           animated: false,
           data: {
@@ -169,7 +205,7 @@ export function parseSchemaToGraph(schema: CDMSchema, options?: { hideJunctionTa
   
   // Calculate metadata
   const domains = Array.from(new Set(nodes.map((n) => n.data.domain).filter(Boolean))) as string[]
-  
+
   return {
     nodes,
     edges,
@@ -178,6 +214,8 @@ export function parseSchemaToGraph(schema: CDMSchema, options?: { hideJunctionTa
       relationshipCount: edges.length,
       domains,
       lastUpdated: new Date(),
+      source: schema.metadata?.source,
+      commit: schema.metadata?.commit,
     },
   }
 }

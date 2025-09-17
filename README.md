@@ -11,6 +11,9 @@ An interactive visualization tool for the KBase Common Data Model (CDM) schema, 
 - **Multiple View Modes**: Overview, detailed, domain-based, and compact views
 - **Export Options**: Export diagrams as PNG, SVG, or JSON
 - **Dark Mode**: Toggle between light and dark themes
+- **Dynamic Schema Loading**: Automatically fetches the latest schema from KBase GitHub repository
+- **Schema Version Tracking**: Shows schema version, last updated date, and commit information
+- **Fallback Support**: Gracefully falls back to local schema files if GitHub is unavailable
 - **Responsive Design**: Works on desktop and tablet devices
 
 ## Technology Stack

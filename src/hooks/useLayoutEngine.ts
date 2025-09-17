@@ -150,55 +150,111 @@ export function useLayoutEngine() {
     return Array.from(domainLayouts.values()).flat()
   }, [applyLayout])
   
-  const applyGridLayout = useCallback((nodes: EntityNode[], _edges: RelationshipEdge[]) => {
+  const applyGridLayout = useCallback((nodes: EntityNode[], edges: RelationshipEdge[]) => {
+    // First, identify which nodes have connections
+    const connectedNodeIds = new Set<string>()
+    edges.forEach((edge) => {
+      connectedNodeIds.add(edge.source)
+      connectedNodeIds.add(edge.target)
+    })
+    
+    // Separate connected and unconnected nodes
+    const connectedNodes = nodes.filter(node => connectedNodeIds.has(node.id))
+    const unconnectedNodes = nodes.filter(node => !connectedNodeIds.has(node.id))
+    
     // Calculate grid dimensions
-    const nodeCount = nodes.length
-    const columns = Math.ceil(Math.sqrt(nodeCount * 1.5)) // Slightly wider than square
     const nodeWidth = 250
     const nodeHeight = 150
     const horizontalSpacing = 120
     const verticalSpacing = 100
     
-    // Group nodes by domain for better organization
-    const domainGroups = new Map<string, EntityNode[]>()
-    nodes.forEach((node) => {
-      const domain = node.data.domain || 'general'
-      if (!domainGroups.has(domain)) {
-        domainGroups.set(domain, [])
-      }
-      domainGroups.get(domain)!.push(node)
-    })
-    
-    // Sort domains by node count (larger domains first)
-    const sortedDomains = Array.from(domainGroups.entries())
-      .sort((a, b) => b[1].length - a[1].length)
-    
     const layoutedNodes: EntityNode[] = []
-    let currentIndex = 0
     
-    sortedDomains.forEach(([_domain, domainNodes]) => {
-      // Sort nodes within domain by relationship count
-      domainNodes.sort((a, b) => {
-        const aRelCount = a.data.isRelationship ? 10 : 0
-        const bRelCount = b.data.isRelationship ? 10 : 0
-        return bRelCount - aRelCount
+    // First, layout connected nodes using dagre
+    if (connectedNodes.length > 0) {
+      const dagreGraph = new dagre.graphlib.Graph()
+      dagreGraph.setDefaultEdgeLabel(() => ({}))
+      
+      dagreGraph.setGraph({
+        rankdir: 'TB',
+        align: 'UL',
+        nodesep: 80,
+        ranksep: 120,
+        marginx: 50,
+        marginy: 50,
       })
       
-      domainNodes.forEach((node) => {
-        const row = Math.floor(currentIndex / columns)
-        const col = currentIndex % columns
-        
+      // Add connected nodes to dagre
+      connectedNodes.forEach((node) => {
+        dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight })
+      })
+      
+      // Add edges to dagre
+      edges.forEach((edge) => {
+        if (connectedNodeIds.has(edge.source) && connectedNodeIds.has(edge.target)) {
+          dagreGraph.setEdge(edge.source, edge.target)
+        }
+      })
+      
+      // Calculate layout
+      dagre.layout(dagreGraph)
+      
+      // Apply calculated positions to connected nodes
+      connectedNodes.forEach((node) => {
+        const nodeWithPosition = dagreGraph.node(node.id)
         layoutedNodes.push({
           ...node,
           position: {
-            x: col * (nodeWidth + horizontalSpacing),
-            y: row * (nodeHeight + verticalSpacing),
+            x: nodeWithPosition.x - nodeWidth / 2,
+            y: nodeWithPosition.y - nodeHeight / 2,
           },
         })
-        
-        currentIndex++
       })
-    })
+    }
+    
+    // Now layout unconnected nodes in a grid to the right
+    if (unconnectedNodes.length > 0) {
+      // Find the rightmost position of connected nodes
+      const maxX = connectedNodes.length > 0 
+        ? Math.max(...layoutedNodes.map(n => n.position.x + nodeWidth)) + 200
+        : 0
+      
+      // Calculate grid for unconnected nodes
+      const unconnectedColumns = Math.ceil(Math.sqrt(unconnectedNodes.length))
+      
+      // Group unconnected nodes by domain
+      const domainGroups = new Map<string, EntityNode[]>()
+      unconnectedNodes.forEach((node) => {
+        const domain = node.data.domain || 'general'
+        if (!domainGroups.has(domain)) {
+          domainGroups.set(domain, [])
+        }
+        domainGroups.get(domain)!.push(node)
+      })
+      
+      // Sort domains by node count
+      const sortedDomains = Array.from(domainGroups.entries())
+        .sort((a, b) => b[1].length - a[1].length)
+      
+      let currentIndex = 0
+      
+      sortedDomains.forEach(([, domainNodes]) => {
+        domainNodes.forEach((node) => {
+          const row = Math.floor(currentIndex / unconnectedColumns)
+          const col = currentIndex % unconnectedColumns
+          
+          layoutedNodes.push({
+            ...node,
+            position: {
+              x: maxX + col * (nodeWidth + horizontalSpacing),
+              y: row * (nodeHeight + verticalSpacing),
+            },
+          })
+          
+          currentIndex++
+        })
+      })
+    }
     
     return layoutedNodes
   }, [])

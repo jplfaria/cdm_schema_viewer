@@ -8,6 +8,12 @@ export interface CDMSchema {
   classes: Record<string, CDMClass>
   slots: Record<string, CDMSlot>
   enums?: Record<string, CDMEnum>
+  metadata?: {
+    lastUpdated: string
+    commit: string
+    source: 'remote' | 'fallback'
+    loadedAt: string
+  }
 }
 
 export interface CDMClass {

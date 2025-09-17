@@ -24,7 +24,9 @@ const EntityNode = memo(({ data, selected }: NodeProps<EntityNodeData>) => {
 
   return (
     <>
-      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <Handle type="target" position={Position.Top} id="top" className="opacity-0" />
+      <Handle type="target" position={Position.Left} id="left" className="opacity-0" />
+      <Handle type="target" position={Position.Right} id="right" className="opacity-0" />
       
       <div
         className={clsx(
@@ -77,7 +79,9 @@ const EntityNode = memo(({ data, selected }: NodeProps<EntityNodeData>) => {
         </div>
       </div>
       
-      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="opacity-0" />
+      <Handle type="source" position={Position.Left} id="left-out" className="opacity-0" />
+      <Handle type="source" position={Position.Right} id="right-out" className="opacity-0" />
     </>
   )
 })

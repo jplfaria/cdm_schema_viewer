@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { FiGrid, FiMap, FiMaximize, FiLayers, FiDownload, FiCheck, FiAlertCircle } from 'react-icons/fi'
+import { FiGrid, FiMap, FiMaximize, FiLayers, FiDownload, FiCheck, FiAlertCircle, FiRefreshCw } from 'react-icons/fi'
 import { useReactFlow, getNodesBounds, getViewportForBounds } from 'reactflow'
 import { useViewStore } from '@/store/viewStore'
 import { useSchemaStore } from '@/store/schemaStore'
+import { useSchemaLoader } from '@/hooks/useSchemaLoader'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import { toPng, toSvg } from 'html-to-image'
@@ -21,6 +22,8 @@ const calculateImageDimensions = (nodesBounds: { x: number; y: number; width: nu
 export default function CanvasControls() {
   const { fitView, getNodes, getEdges } = useReactFlow()
   const graph = useSchemaStore((state) => state.graph)
+  const loading = useSchemaStore((state) => state.loading)
+  const { loadCDMSchema } = useSchemaLoader()
   const [exportStatus, setExportStatus] = useState<ExportStatus>('idle')
   const [exportType, setExportType] = useState<string>('')
   
@@ -395,6 +398,31 @@ export default function CanvasControls() {
           </Tooltip.Portal>
         </Tooltip.Root>
 
+        {/* Refresh Schema */}
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <button
+              onClick={loadCDMSchema}
+              disabled={loading}
+              className={`rounded-md border bg-background p-2 shadow-sm hover:bg-muted ${
+                loading ? 'opacity-50 cursor-wait' : ''
+              }`}
+              aria-label="Refresh schema"
+            >
+              <FiRefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content
+              className="z-50 rounded-md bg-foreground px-3 py-1.5 text-xs text-background shadow-md"
+              sideOffset={5}
+            >
+              Refresh schema from GitHub
+              <Tooltip.Arrow className="fill-foreground" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
+
         {/* View Mode Selector */}
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
@@ -506,11 +534,41 @@ export default function CanvasControls() {
         </DropdownMenu.Root>
       </Tooltip.Provider>
 
-      {/* Stats */}
+      {/* Stats and Schema Info */}
       {graph && (
         <div className="ml-4 flex items-center gap-4 text-sm text-muted-foreground">
           <span>{graph.nodes.length} entities</span>
           <span>{graph.edges.length} relationships</span>
+          {graph.metadata?.source && (
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted/50">
+                  <span className={`w-2 h-2 rounded-full ${
+                    graph.metadata.source === 'remote' ? 'bg-green-500' : 'bg-yellow-500'
+                  }`} />
+                  <span className="text-xs">
+                    {graph.metadata.source === 'remote' ? 'Live' : 'Local'} Schema
+                  </span>
+                </div>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  className="z-50 max-w-xs rounded-md bg-foreground px-3 py-2 text-xs text-background shadow-md"
+                  sideOffset={5}
+                >
+                  <div className="space-y-1">
+                    <div><strong>Source:</strong> {graph.metadata.source === 'remote' ? 'GitHub Repository' : 'Local Files'}</div>
+                    <div><strong>Version:</strong> {graph.metadata.source === 'remote' ? 'latest' : 'v0.0.1'}</div>
+                    <div><strong>Last Updated:</strong> {new Date(graph.metadata.lastUpdated).toLocaleDateString()}</div>
+                    {graph.metadata.commit && graph.metadata.commit !== 'local' && (
+                      <div><strong>Commit:</strong> {graph.metadata.commit}</div>
+                    )}
+                  </div>
+                  <Tooltip.Arrow className="fill-foreground" />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          )}
         </div>
       )}
     </div>
